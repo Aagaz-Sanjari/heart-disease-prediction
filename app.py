@@ -23,7 +23,7 @@ def index():
             df = pd.DataFrame([values], columns=FEATURES)
 
             scaled = scaler.transform(df)
-            prob = model.predict_proba(scaled)[0][1]
+            prob = model.predict_proba(scaled)[0][0]   # class 0 = heart disease in this dataset
 
             if prob < 0.33:
                 level, color = "Low risk", "green"

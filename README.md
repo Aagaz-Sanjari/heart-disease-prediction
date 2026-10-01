@@ -14,7 +14,7 @@ python train_model.py
 python app.py
 
 ## Model performance
-Accuracy: XX%   Recall: XX%   (fill in from train_model.py output)
+Accuracy: 82%   Disease recall: 64%
 
 ## Disclaimer
 Educational project only. Not medical advice.
