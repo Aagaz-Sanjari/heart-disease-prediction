@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title> risk Predict | AI Health Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{# ---------- form field macros ---------- #}
+{% macro num(name, label, lo, hi, step, example, unit, tip) %}
+<div class="field">
+  <label for="f-{{ name }}">{{ label }}<span class="tip" tabindex="0" role="img" aria-label="{{ tip }}" data-tip="{{ tip }}">i</span></label>
+  <div class="control">
+    <input id="f-{{ name }}" type="number" name="{{ name }}" min="{{ lo }}" max="{{ hi }}" step="{{ step }}"
+           placeholder="e.g. {{ example }}" inputmode="decimal" required
+           value="{{ '%g'|format(values.get(name)) if values.get(name) is not none else '' }}">
+    <span class="unit">{{ unit }}</span>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro sel(name, label, opts, tip) %}
+<div class="field">
+  <label for="f-{{ name }}">{{ label }}<span class="tip" tabindex="0" role="img" aria-label="{{ tip }}" data-tip="{{ tip }}">i</span></label>
+  <select id="f-{{ name }}" name="{{ name }}" required>
+    <option value="" disabled {% if values.get(name) is none %}selected{% endif %}>Select an option</option>
+    {% for val, text in opts %}
+    <option value="{{ val }}" {% if values.get(name) == val %}selected{% endif %}>{{ text }}</option>
+    {% endfor %}
+  </select>
+</div>
+{% endmacro %}
+
+{% macro toggle(name, label, tip) %}
+{% set on = (values.get(name) == 1) %}
+<div class="field">
+  <span class="label">{{ label }}<span class="tip" tabindex="0" role="img" aria-label="{{ tip }}" data-tip="{{ tip }}">i</span></span>
+  <label class="switch">
+    <input type="checkbox" role="switch" data-for="{{ name }}" aria-label="{{ label }}" {% if on %}checked{% endif %}>
+    <span class="track"></span>
+    <span class="switch-text">{{ 'Yes' if on else 'No' }}</span>
+  </label>
+  <input type="hidden" name="{{ name }}" value="{{ 1 if on else 0 }}">
+</div>
+{% endmacro %}
+
+{% set ok = result and not result.error %}
+
+<!-- ================= NAVIGATION ================= -->
+<header class="nav" id="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="#home" aria-label="CardioPredict home">
+      <span class="brand-icon" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"/>
+          <path d="M3.5 12.5h4l1.8-3 2.6 6 1.8-3h6.3" stroke-width="1.6"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">RISK Predict</span>
+        <span class="brand-sub">SANJARI pvt Ltd</span>
+      </span>
+    </a>
+
+    <nav class="nav-links" id="navLinks" aria-label="Main">
+      <a href="#home">Home</a>
+      <a href="#prediction">Prediction</a>
+      <a href="#how">How It Works</a>
+      <a href="#about">About</a>
+    </nav>
+
+    <div class="nav-right">
+      <span class="status"><i></i>ML MODEL ONLINE</span>
+      <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navLinks">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="hero" id="home">
+  <div class="container hero-grid">
+    <div>
+      <span class="badge">AI-POWERED HEALTH ANALYTICS</span>
+      <h1>Understand Your Heart Health With Machine Learning</h1>
+      <p class="hero-text">Enter health parameters and generate an ML-based heart disease risk prediction.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#prediction">Start Prediction →</a>
+        <a class="btn btn-ghost" href="#how">How It Works</a>
+      </div>
+    </div>
+
+    <svg class="orb" viewBox="0 0 520 520" role="img" aria-label="Glowing heart with an ECG waveform and neural network connections">
+      <defs>
+        <radialGradient id="orbBg" cx="50%" cy="42%" r="62%">
+          <stop offset="0" stop-color="#16497A"/><stop offset="1" stop-color="#0B132B"/>
+        </radialGradient>
+        <linearGradient id="heartGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#F87171"/><stop offset="1" stop-color="#B91C1C"/>
+        </linearGradient>
+        <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#2563EB"/><stop offset="1" stop-color="#06B6D4"/>
+        </linearGradient>
+        <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="14"/></filter>
+        <filter id="soft" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="2.5" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
+          <path d="M26 0H0V26" fill="none" stroke="#06B6D4" stroke-opacity=".13"/>
+        </pattern>
+        <clipPath id="orbClip"><circle cx="260" cy="260" r="236"/></clipPath>
+      </defs>
+
+      <circle cx="260" cy="260" r="250" fill="url(#orbBg)"/>
+      <circle cx="260" cy="260" r="236" fill="url(#grid)"/>
+
+      <!-- circular data visualisation -->
+      <circle class="spin-slow" cx="260" cy="260" r="244" fill="none" stroke="#06B6D4" stroke-opacity=".35" stroke-width="2" stroke-dasharray="2 12"/>
+      <circle class="spin-rev" cx="260" cy="260" r="210" fill="none" stroke="url(#ringGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="360 960"/>
+      <circle class="spin-slow" cx="260" cy="260" r="178" fill="none" stroke="#2563EB" stroke-opacity=".6" stroke-width="2" stroke-linecap="round" stroke-dasharray="120 998"/>
+      <circle cx="260" cy="260" r="150" fill="none" stroke="#06B6D4" stroke-opacity=".12"/>
+
+      <!-- neural connections -->
+      <g stroke="#06B6D4" stroke-opacity=".3" stroke-width="1" fill="none">
+        <path d="M110 170L150 110L260 72L380 105L420 175"/>
+        <path d="M110 170L95 300L150 410L260 452L370 415L430 310L420 175"/>
+        <path d="M150 110L95 300M380 105L430 310M260 72L260 150M110 170L200 215M420 175L320 215"/>
+        <path d="M150 410L215 330M370 415L305 330M95 300L180 290M430 310L340 290"/>
+      </g>
+      <g fill="#06B6D4" filter="url(#soft)">
+        <circle class="twinkle" cx="110" cy="170" r="4.5"/>
+        <circle class="twinkle" style="animation-delay:.6s" cx="150" cy="110" r="4"/>
+        <circle class="twinkle" style="animation-delay:1.2s" cx="260" cy="72" r="5"/>
+        <circle class="twinkle" style="animation-delay:.3s" cx="380" cy="105" r="4"/>
+        <circle class="twinkle" style="animation-delay:1.8s" cx="420" cy="175" r="4.5"/>
+        <circle class="twinkle" style="animation-delay:.9s" cx="95" cy="300" r="4"/>
+        <circle class="twinkle" style="animation-delay:2.1s" cx="430" cy="310" r="4.5"/>
+        <circle class="twinkle" style="animation-delay:1.5s" cx="150" cy="410" r="4"/>
+        <circle class="twinkle" style="animation-delay:.2s" cx="370" cy="415" r="4"/>
+        <circle class="twinkle" style="animation-delay:2.4s" cx="260" cy="452" r="5"/>
+      </g>
+
+      <!-- floating particles -->
+      <g fill="#67E8F9">
+        <circle class="drift" cx="170" cy="200" r="2.2" opacity=".7"/>
+        <circle class="drift" style="animation-delay:-2s" cx="350" cy="190" r="1.8" opacity=".6"/>
+        <circle class="drift" style="animation-delay:-4s" cx="210" cy="360" r="2" opacity=".7"/>
+        <circle class="drift" style="animation-delay:-1s" cx="330" cy="370" r="2.4" opacity=".6"/>
+        <circle class="drift" style="animation-delay:-5s" cx="140" cy="260" r="1.6" opacity=".5"/>
+        <circle class="drift" style="animation-delay:-3s" cx="385" cy="255" r="1.8" opacity=".5"/>
+      </g>
+
+      <!-- glowing heart -->
+      <g class="pulse">
+        <g transform="translate(160 157)">
+          <path d="M100 170 C 20 110, 5 70, 30 40 C 55 12, 90 25, 100 52 C 110 25, 145 12, 170 40 C 195 70, 180 110, 100 170 Z"
+                fill="#EF4444" opacity=".75" filter="url(#glow)"/>
+          <path d="M100 170 C 20 110, 5 70, 30 40 C 55 12, 90 25, 100 52 C 110 25, 145 12, 170 40 C 195 70, 180 110, 100 170 Z"
+                fill="url(#heartGrad)" stroke="rgba(255,255,255,.28)" stroke-width="1.5"/>
+        </g>
+      </g>
+
+      <!-- ECG waveform -->
+      <g clip-path="url(#orbClip)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M24 262H176L196 262L212 234L228 292L246 170L266 340L284 262H318L336 246L354 262H496"
+              stroke="#06B6D4" stroke-opacity=".22" stroke-width="2"/>
+        <path class="ecg" pathLength="1000"
+              d="M24 262H176L196 262L212 234L228 292L246 170L266 340L284 262H318L336 246L354 262H496"
+              stroke="#67E8F9" stroke-width="3" filter="url(#soft)"/>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ================= STATS ================= -->
+<section class="stats" aria-label="Highlights">
+  <div class="container stats-grid">
+    <div class="stat">
+      <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg></div>
+      <h3>ML Powered</h3><p>Machine-learning based prediction</p>
+    </div>
+    <div class="stat">
+      <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+      <h3>Fast Analysis</h3><p>Prediction generated within seconds</p>
+    </div>
+    <div class="stat">
+      <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></div>
+      <h3>Data Driven</h3><p>Based on health parameters</p>
+    </div>
+    <div class="stat">
+      <div class="stat-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+      <h3>Privacy First</h3><p>Input data processed for prediction</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PREDICTION ================= -->
+<section class="section" id="prediction">
+  <div class="container">
+    <div class="dash">
+
+      <form class="form-side" method="POST" action="#prediction" id="predForm">
+        <div class="form-head">
+          <h2>Patient Health Information</h2>
+          <p>Enter the required parameters below.</p>
+        </div>
+
+        <div class="group">
+          <h3>Personal Information</h3>
+          <div class="fields">
+            {{ num('age', 'Age', 20, 90, 1, 54, 'years', 'Age in years.') }}
+            <div class="field">
+              <span class="label">Sex<span class="tip" tabindex="0" role="img" aria-label="Sex as recorded in the dataset." data-tip="Sex as recorded in the dataset.">i</span></span>
+              <div class="segmented" role="radiogroup" aria-label="Sex">
+                <label><input type="radio" name="sex" value="1" required {% if values.get('sex') == 1 %}checked{% endif %}><span>Male</span></label>
+                <label><input type="radio" name="sex" value="0" required {% if values.get('sex') == 0 %}checked{% endif %}><span>Female</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Cardiovascular Parameters</h3>
+          <div class="fields">
+            {{ sel('cp', 'Chest Pain Type', [(0, 'Type 0'), (1, 'Type 1'), (2, 'Type 2'), (3, 'Type 3')], 'Type of chest pain, stored as a code from 0 to 3 in the dataset.') }}
+            {{ num('trestbps', 'Resting Blood Pressure', 80, 200, 1, 130, 'mm Hg', 'Blood pressure measured at rest, in mm Hg.') }}
+            {{ num('chol', 'Cholesterol', 100, 600, 1, 240, 'mg/dl', 'Serum cholesterol in mg/dl.') }}
+            {{ num('thalach', 'Maximum Heart Rate', 60, 220, 1, 150, 'bpm', 'Highest heart rate reached during the exercise test, in beats per minute.') }}
+            {{ toggle('exang', 'Exercise-Induced Angina', 'Whether exercise brought on chest pain (angina).') }}
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Additional Parameters</h3>
+          <div class="fields">
+            {{ toggle('fbs', 'Fasting Blood Sugar above 120 mg/dl', 'Whether fasting blood sugar was above 120 mg/dl.') }}
+            {{ sel('restecg', 'Resting ECG Result', [(0, 'Result 0'), (1, 'Result 1'), (2, 'Result 2')], 'Resting electrocardiogram result, stored as a code from 0 to 2.') }}
+            {{ num('oldpeak', 'ST Depression (Oldpeak)', 0, 7, 0.1, 1.0, 'mm', 'How far the ECG ST segment dropped during exercise compared with rest.') }}
+            {{ sel('slope', 'ST Slope at Peak Exercise', [(0, 'Slope 0'), (1, 'Slope 1'), (2, 'Slope 2')], 'Slope of the ST segment at peak exercise, stored as a code from 0 to 2.') }}
+            {{ sel('ca', 'Major Vessels (Fluoroscopy)', [(0, '0 vessels'), (1, '1 vessel'), (2, '2 vessels'), (3, '3 vessels'), (4, '4 vessels')], 'Number of major blood vessels (0 to 4) coloured by fluoroscopy.') }}
+            {{ sel('thal', 'Thalassemia Test Result', [(0, 'Result 0'), (1, 'Result 1'), (2, 'Result 2'), (3, 'Result 3')], 'Result of a thalassemia blood-disorder test, stored as a code from 0 to 3.') }}
+          </div>
+        </div>
+
+        <button class="submit" type="submit">Generate Prediction</button>
+        <div class="sub-actions">
+          <button class="linkbtn" type="button" id="fillBtn">Fill example values</button>
+          <button class="linkbtn" type="button" id="clearBtn">Clear form</button>
+        </div>
+      </form>
+
+      <aside class="result" id="result" {% if ok %}data-tone="{{ result.color }}"{% endif %} aria-live="polite">
+        <div class="result-inner">
+          <h2>Risk Assessment</h2>
+
+          <div class="gauge">
+            <svg viewBox="0 0 200 200" aria-hidden="true">
+              <circle class="g-track" cx="100" cy="100" r="84"/>
+              {% if not ok %}<circle class="g-empty" cx="100" cy="100" r="66"/>{% endif %}
+              <circle class="g-bar" id="gBar" cx="100" cy="100" r="84"/>
+            </svg>
+            <div class="gauge-center">
+              {% if ok %}
+                <div class="pct"><span id="num">{{ result.prob }}</span><small>%</small></div>
+                <div class="gauge-sub">estimated risk</div>
+              {% else %}
+                <div class="pct" style="color:#475569">--</div>
+                <div class="gauge-sub">awaiting input</div>
+              {% endif %}
+            </div>
+          </div>
+
+          {% if ok %}
+            <span class="level">{{ result.level }}</span>
+            <p class="result-note">
+              {% if result.color == 'green' %}The model sees few of the patterns linked to heart disease in its training data.
+              {% elif result.color == 'orange' %}The model sees some patterns linked to heart disease. Treat this as a prompt to look closer, not a diagnosis.
+              {% else %}The model sees many patterns linked to heart disease in its training data. Real concerns need a clinician, not this app.
+              {% endif %}
+            </p>
+            <p class="fine">Educational estimate only. This is not a diagnosis.</p>
+          {% elif result %}
+            <p class="result-error">{{ result.error }}</p>
+          {% else %}
+            <p class="result-note">Complete the form and select Generate Prediction. Your result will appear here.</p>
+          {% endif %}
+
+          <div class="bands">
+            <div class="band"><i style="background:var(--teal)"></i><b>Low risk</b> below 33%</div>
+            <div class="band"><i style="background:var(--amber)"></i><b>Moderate risk</b> 33% to 66%</div>
+            <div class="band"><i style="background:var(--coral)"></i><b>High risk</b> above 66%</div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+</section>
+
+<!-- ================= HOW IT WORKS ================= -->
+<section class="section" id="how">
+  <div class="container">
+    <div class="section-head">
+      <h2>How It Works</h2>
+      <p>From health parameters to a risk estimate in three steps.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-no">1</div>
+        <h3>Enter the parameters</h3>
+        <p>Fill in the 13 health measurements the model was trained on, from age and blood pressure to exercise test results.</p>
+      </div>
+      <div class="step">
+        <div class="step-no">2</div>
+        <h3>The model analyses them</h3>
+        <p>Your values are scaled the same way as the training data, then passed to a trained machine-learning classifier.</p>
+      </div>
+      <div class="step">
+        <div class="step-no">3</div>
+        <h3>Read the risk estimate</h3>
+        <p>The model's probability is shown as a percentage and grouped into a low, moderate or high risk band.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section class="section" id="about">
+  <div class="container">
+    <div class="section-head">
+      <h2>About This Project</h2>
+      <p>An educational machine-learning project built for a workshop.</p>
+    </div>
+    <div class="about">
+      <div class="about-card">
+        <p>CardioPredict trains a classifier on a classic heart disease dataset and wraps it in a web app, so you can see how a model turns patient measurements into a probability.</p>
+        <p>It shows how a full machine-learning workflow fits together: data, training, saving the model, and serving predictions through a web interface.</p>
+      </div>
+      <div class="about-card">
+        <ul class="facts">
+          <li><span>Dataset</span><b>UCI Heart Disease (Cleveland)</b></li>
+          <li><span>Records</span><b>303 patients</b></li>
+          <li><span>Input features</span><b>13</b></li>
+          <li><span>Task</span><b>Binary classification</b></li>
+        </ul>
+      </div>
+    </div>
+    <p class="disclaimer"><b>Not medical advice.</b> This is an educational tool trained on a small dataset. It cannot diagnose or rule out heart disease. Speak to a qualified clinician about any health concern.</p>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <a class="brand" href="#home"><span class="brand-text"><span class="brand-name">CardioPredict</span><span class="brand-sub">AI Health Analytics</span></span></a>
+    <span>Educational project. Not medical advice.</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var risk = {{ result.prob if ok else 'null' }};
+  var hasResult = {{ 'true' if result else 'false' }};
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // nav: more opaque after scrolling
+  var nav = document.getElementById('nav');
+  function onScroll() { nav.classList.toggle('scrolled', window.scrollY > 12); }
+  onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
+
+  // nav: mobile menu
+  var menuBtn = document.getElementById('menuBtn'), links = document.getElementById('navLinks');
+  menuBtn.addEventListener('click', function () {
+    var open = links.classList.toggle('open');
+    menuBtn.setAttribute('aria-expanded', open);
+  });
+  links.addEventListener('click', function (e) {
+    if (e.target.tagName === 'A') { links.classList.remove('open'); menuBtn.setAttribute('aria-expanded', 'false'); }
+  });
+
+  // toggle switches keep their hidden inputs in sync
+  var form = document.getElementById('predForm');
+  function syncToggle(cb) {
+    var hidden = form.querySelector('input[type=hidden][name="' + cb.dataset['for'] + '"]');
+    hidden.value = cb.checked ? 1 : 0;
+    cb.parentNode.querySelector('.switch-text').textContent = cb.checked ? 'Yes' : 'No';
+  }
+  form.querySelectorAll('input[type=checkbox][data-for]').forEach(function (cb) {
+    cb.addEventListener('change', function () { syncToggle(cb); });
+  });
+
+  // example + clear
+  var example = { age: 63, sex: 1, cp: 3, trestbps: 145, chol: 233, fbs: 1, restecg: 0,
+                  thalach: 150, exang: 0, oldpeak: 2.3, slope: 0, ca: 0, thal: 1 };
+  document.getElementById('fillBtn').addEventListener('click', function () {
+    Object.keys(example).forEach(function (k) {
+      var v = String(example[k]);
+      var cb = form.querySelector('input[type=checkbox][data-for="' + k + '"]');
+      if (cb) { cb.checked = v === '1'; syncToggle(cb); return; }
+      var radios = form.querySelectorAll('input[type=radio][name="' + k + '"]');
+      if (radios.length) { radios.forEach(function (r) { r.checked = r.value === v; }); return; }
+      var el = form.querySelector('[name="' + k + '"]:not([type=hidden])');
+      if (el) el.value = v;
+    });
+  });
+  document.getElementById('clearBtn').addEventListener('click', function () {
+    form.querySelectorAll('input[type=number]').forEach(function (i) { i.value = ''; });
+    form.querySelectorAll('select').forEach(function (s) { s.selectedIndex = 0; });
+    form.querySelectorAll('input[type=radio]').forEach(function (r) { r.checked = false; });
+    form.querySelectorAll('input[type=checkbox][data-for]').forEach(function (cb) { cb.checked = false; syncToggle(cb); });
+  });
+
+  // result gauge + count-up
+  if (risk !== null) {
+    var C = 527.8, bar = document.getElementById('gBar'), num = document.getElementById('num');
+    var target = C * (1 - risk / 100);
+    if (reduce) { bar.style.strokeDashoffset = target; }
+    else {
+      requestAnimationFrame(function () { requestAnimationFrame(function () { bar.style.strokeDashoffset = target; }); });
+      var start = null, dur = 1100;
+      (function step(ts) {
+        if (start === null) start = ts;
+        var p = Math.min((ts - start) / dur, 1), e = 1 - Math.pow(1 - p, 3);
+        num.textContent = (risk * e).toFixed(1);
+        if (p < 1) requestAnimationFrame(step); else num.textContent = risk;
+      })(performance.now());
+    }
+  }
+
+  // after a prediction, bring the result into view
+  if (hasResult) {
+    var small = window.matchMedia('(max-width: 980px)').matches;
+    document.getElementById(small ? 'result' : 'prediction').scrollIntoView({ block: 'start' });
+  }
+})();
+</script>
+</body>
+</html>
